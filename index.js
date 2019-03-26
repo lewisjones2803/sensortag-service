@@ -27,6 +27,12 @@ function updateMagnetometerChange(target, sensor, x, y, z) {
     z
   });
 }
+function updateLuxometerChange(target, sensor, lux) {
+  target.emit('LUXOMETER_CHANGE', {
+    sensorId: sensor.getId(),
+    lux
+  });
+}
 
 function onDiscover(sensorTag) {
   console.log('onDiscover:', sensorTag.uuid);
@@ -45,11 +51,14 @@ function onDiscover(sensorTag) {
       logger.debug('magnetometerChange', x, y, z);
       updateMagnetometerChange(io, sensor, x, y, z);
     });
+    sensor.on('luxometerChange', (lux) => {
+      logger.debug('luxometerChange', lux);
+      updateAccelerometerChange(io, sensor, lux);
+    });
     sensor.on('buttonPress', () => {
       logger.debug('buttonPress');
       updateButton(io, sensor);
     });
-
   });
 }
 

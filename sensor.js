@@ -6,6 +6,8 @@ const logger = require('./logger');
 
 const accelerometerPeriod = 200;
 const accelerometerPrecision = 2;
+const luxometerPeriod = 200;
+const luxometerPrecision = 2;
 const movingAverageTimeInterval = 2000;
 const accelerometerUpdateMinInterval = 100;
 const magnetometerPeriod = 200;
@@ -31,7 +33,8 @@ class Sensor extends EventEmitter {
     this.movingAverageX = MovingAverage(movingAverageTimeInterval)
     this.movingAverageY = MovingAverage(movingAverageTimeInterval)
     this.movingAverageZ = MovingAverage(movingAverageTimeInterval)
-
+    this.luxometerUpdateTimestamp=0;
+    this.movingAverageLux = MovingAverage(movingAverageTimeInterval)
   }
 
   getId() {
@@ -65,6 +68,15 @@ class Sensor extends EventEmitter {
       y = y.toFixed(accelerometerPrecision);
       z = z.toFixed(accelerometerPrecision);
       _this.emit("magnetometerChange", x, y, z);
+    });
+
+    this.sensorTag.on('luxometerChange', (lux) => {
+      var timestamp = Date.now();
+      this.movingAverageLux.push(timestamp, lux);
+      this.luxometerUpdateTimestamp = timestamp;
+      lux = this.movingAverageLux.movingAverage().toFixed(luxometerPrecision);
+      logger.debug('Sensor - on luxometerChange', lux);
+      _this.emit("luxometerChange", lux);
     });
 
     this.sensorTag.on('simpleKeyChange', function(left, right, reedRelay) {
@@ -130,13 +142,40 @@ class Sensor extends EventEmitter {
         });
       });
     });
+
+    this.sensorTag.enableLuxometer(function(error) {
+      logger.debug('Sensor.start - set enableLuxometer');
+      if (error) {
+        console.error(error);
+      }
+      _this.sensorTag.setLuxometerPeriod(luxometerPeriod, function(error) {
+        logger.debug('Sensor.start - set luxometerPeriod');
+        if (error) {
+          logger.error(error);
+        }
+        _this.sensorTag.notifyLuxometer(function(error) {
+          console.log('Sensor.start - set notifyLuxometer');
+          if (error) {
+            logger.error(error);
+          }
+          safeCallback(callback);
+        });
+      });
+    });
+
+    _this.sensorTag.notifySimpleKey(function(error){
+      logger.debug('Sensor.start - set notifySimpleKey');
+      if (error) {
+        logger.error(error);
+      }
+    });
   }
 
   stop(callback) {
     this.sensorTag.unnotifyAccelerometer(safeCallback(callback));
     this.sensorTag.unnotifyMagnetometer(safeCallback(callback));
+    this.sensorTag.unnotifyLuxometer(safeCallback(callback));
   }
-
 }
 
 
