@@ -33,8 +33,6 @@ class Sensor extends EventEmitter {
     this.movingAverageX = MovingAverage(movingAverageTimeInterval)
     this.movingAverageY = MovingAverage(movingAverageTimeInterval)
     this.movingAverageZ = MovingAverage(movingAverageTimeInterval)
-    this.luxometerUpdateTimestamp=0;
-    this.movingAverageLux = MovingAverage(movingAverageTimeInterval)
   }
 
   getId() {
@@ -71,11 +69,8 @@ class Sensor extends EventEmitter {
     });
 
     this.sensorTag.on('luxometerChange', (lux) => {
-      var timestamp = Date.now();
-      this.movingAverageLux.push(timestamp, lux);
-      this.luxometerUpdateTimestamp = timestamp;
-      lux = this.movingAverageLux.movingAverage().toFixed(luxometerPrecision);
       logger.debug('Sensor - on luxometerChange', lux);
+      lux = lux.toFixed(luxometerPrecision);
       _this.emit("luxometerChange", lux);
     });
 
@@ -158,7 +153,6 @@ class Sensor extends EventEmitter {
           if (error) {
             logger.error(error);
           }
-          safeCallback(callback);
         });
       });
     });

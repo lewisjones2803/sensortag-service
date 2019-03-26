@@ -53,7 +53,7 @@ function onDiscover(sensorTag) {
     });
     sensor.on('luxometerChange', (lux) => {
       logger.debug('luxometerChange', lux);
-      updateAccelerometerChange(io, sensor, lux);
+      updateLuxometerChange(io, sensor, lux);
     });
     sensor.on('buttonPress', () => {
       logger.debug('buttonPress');
