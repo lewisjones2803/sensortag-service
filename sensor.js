@@ -8,6 +8,8 @@ const accelerometerPeriod = 200;
 const accelerometerPrecision = 2;
 const movingAverageTimeInterval = 2000;
 const accelerometerUpdateMinInterval = 100;
+const magnetometerPeriod = 200;
+const magnetometerPrecision = 2;
 
 var safeCallback = function(callback) {
   if (typeof callback == 'function') {
@@ -19,7 +21,7 @@ class Sensor extends EventEmitter {
 
   constructor(sensorTag){
     super();
-    this.sensorTag = sensorTag; 
+    this.sensorTag = sensorTag;
     this.hasAddedListeners = false;
     this.hasStarted = false;
     this.leftButtonPressed = false;
@@ -57,6 +59,14 @@ class Sensor extends EventEmitter {
       // }
     });
 
+    this.sensorTag.on('magnetometerChange', (x, y, z) => {
+      logger.debug('Sensor - on magnetometerChange', x, y, z);
+      x = x.toFixed(accelerometerPrecision);
+      y = y.toFixed(accelerometerPrecision);
+      z = z.toFixed(accelerometerPrecision);
+      _this.emit("magnetometerChange", x, y, z);
+    });
+
     this.sensorTag.on('simpleKeyChange', function(left, right, reedRelay) {
       // console.log(this.id, this.uuid, left, right, reedRelay);
       logger.debug('Sensor - on simpleKeyChange');
@@ -66,12 +76,14 @@ class Sensor extends EventEmitter {
     });
   }
 
-  start(callback) {
+  start() {
     var _this = this;
     if (this.hasStarted) {
       return;
     }
     this.hasStarted = true;
+
+    // accelerometer
     this.sensorTag.enableAccelerometer(function(error) {
       logger.debug('Sensor.start - set enableAccelerometer');
       if (error) {
@@ -87,21 +99,42 @@ class Sensor extends EventEmitter {
           if (error) {
             logger.error(error);
           }
-          safeCallback(callback);
         });
       });
+    });
 
-      _this.sensorTag.notifySimpleKey(function(error){
-        logger.debug('Sensor.start - set notifySimpleKey');
+    this.sensorTag.notifySimpleKey(function(error){
+      logger.debug('Sensor.start - set notifySimpleKey');
+      if (error) {
+        logger.error(error);
+      }
+    });
+
+    this.sensorTag.enableMagnetometer(function(error){
+      logger.debug('Sensor.start - set enableMagnetometer');
+      if (error) {
+        console.error(error);
+      }
+      _this.sensorTag.setMagnetometerPeriod(magnetometerPeriod, function(error) {
+        logger.debug('Sensor.start - set magnetometerPeriod');
         if (error) {
           logger.error(error);
         }
+        // CC2540: period 1 - 2550 ms, default period is 2000 ms
+        // CC2650: period 100 - 2550 ms, default period is 1000 ms
+        _this.sensorTag.notifyMagnetometer(function(error) {
+          console.log('Sensor.start - set notifyMagnetometer');
+          if (error) {
+            logger.error(error);
+          }
+        });
       });
     });
   }
 
   stop(callback) {
     this.sensorTag.unnotifyAccelerometer(safeCallback(callback));
+    this.sensorTag.unnotifyMagnetometer(safeCallback(callback));
   }
 
 }
